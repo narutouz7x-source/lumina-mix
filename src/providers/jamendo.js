@@ -1,6 +1,6 @@
 const API = "https://api.jamendo.com/v3.0/tracks/";
 
-export async function searchJamendo(query, clientId) {
+async function requestTracks(params, clientId) {
   if (!clientId) {
     const error = new Error("Music catalogue is not configured yet. Set JAMENDO_CLIENT_ID.");
     error.statusCode = 503;
@@ -10,18 +10,14 @@ export async function searchJamendo(query, clientId) {
   url.search = new URLSearchParams({
     client_id: clientId,
     format: "json",
-    limit: "30",
-    search: query,
     audioformat: "mp31",
     include: "musicinfo",
-    groupby: "artist_id"
+    ...params
   }).toString();
-
-  const response = await fetch(url, { headers: { "Accept": "application/json" }, signal: AbortSignal.timeout(10000) });
+  const response = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10000) });
   if (!response.ok) throw new Error(`Music catalogue returned HTTP ${response.status}`);
   const payload = await response.json();
-  if (payload.headers?.status !== "success") throw new Error(payload.headers?.error_message || "Music catalogue search failed");
-
+  if (payload.headers?.status !== "success") throw new Error(payload.headers?.error_message || "Music catalogue request failed");
   return (payload.results || []).filter(t => t.audio).map(t => ({
     id: `jamendo:${t.id}`,
     title: t.name,
@@ -37,6 +33,15 @@ export async function searchJamendo(query, clientId) {
     energy: Number(t.musicinfo?.tags?.energy?.[0]) || undefined,
     license: t.license_ccurl || undefined
   }));
+}
+
+export function searchJamendo(query, clientId) {
+  return requestTracks({ limit: "30", search: query, groupby: "artist_id" }, clientId);
+}
+
+export async function getJamendoTrack(id, clientId) {
+  const tracks = await requestTracks({ id: String(id), limit: "1" }, clientId);
+  return tracks[0] || null;
 }
 
 export function getJamendoTrackId(id) {
