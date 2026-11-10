@@ -1,0 +1,13 @@
+{
+  "name": "lumina-mix",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "A smart music discovery and transition-ranking addon for BitChord",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" }
+}
