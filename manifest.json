@@ -1,0 +1,31 @@
+{
+  "id": "in.lumina.mix",
+  "name": "Lumina Mix",
+  "version": "0.1.0",
+  "description": "Smart music discovery with transition-aware track ordering.",
+  "resources": ["search", "stream"],
+  "allowDownloads": 1,
+  "settings": [
+    {
+      "key": "quality",
+      "type": "select",
+      "label": "Audio source quality",
+      "default": "standard",
+      "options": [
+        { "value": "standard", "label": "Standard" },
+        { "value": "high", "label": "High (when available)" }
+      ]
+    },
+    {
+      "key": "mix_mode",
+      "type": "select",
+      "label": "Mix preference",
+      "default": "balanced",
+      "options": [
+        { "value": "balanced", "label": "Balanced transitions" },
+        { "value": "tempo", "label": "Closer tempo" },
+        { "value": "discovery", "label": "More discovery" }
+      ]
+    }
+  ]
+}
