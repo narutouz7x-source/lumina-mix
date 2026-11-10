@@ -2,11 +2,20 @@ import http from "node:http";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { searchJamendo, getJamendoTrackId } from "./providers/jamendo.js";
+import { searchJamendo, getJamendoTrack, getJamendoTrackId } from "./providers/jamendo.js";
 import { rankForTransition, scoreTransition } from "./engine/compatibility.js";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const manifest = JSON.parse(await readFile(path.join(ROOT, "../manifest.json"), "utf8"));
+
+// Load a local .env without adding a runtime dependency. Host-provided variables win.
+try {
+  const envText = await readFile(path.join(ROOT, "../.env"), "utf8");
+  for (const line of envText.split(/\\r?\\n/)) {
+    const match = line.match(/^\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*=\\s*(.*?)\\s*$/);
+    if (match && process.env[match[1]] === undefined) process.env[match[1]] = match[2].replace(/^(['"])(.*)\\1$/, "$2");
+  }
+} catch {}
 const PORT = Number(process.env.PORT || 3000);
 const CLIENT_ID = process.env.JAMENDO_CLIENT_ID;
 
@@ -22,7 +31,10 @@ const json = (res, status, data) => {
 };
 
 async function handle(req, res) {
-  if (req.method === "OPTIONS") return json(res, 204, {});
+  if (req.method === "OPTIONS") {
+    res.writeHead(204, { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" });
+    return res.end();
+  }
   if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
 
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
@@ -54,8 +66,7 @@ async function handle(req, res) {
     const numericId = getJamendoTrackId(id);
     if (!numericId) return json(res, 404, { error: "Track not found" });
     try {
-      const tracks = await searchJamendo(numericId, CLIENT_ID);
-      const track = tracks.find(t => getJamendoTrackId(t.id) === numericId);
+      const track = await getJamendoTrack(numericId, CLIENT_ID);
       if (!track?.streamURL) return json(res, 404, { error: "Track not found" });
       return json(res, 200, {
         url: track.streamURL,
